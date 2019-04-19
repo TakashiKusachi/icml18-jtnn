@@ -16,11 +16,7 @@ from getpass import getpass,getuser
 import warnings
 from multiprocessing import Pool
 
-NUMBET_OF_MP_PROCESSES = 3 # Number of processes use to parse and expand data.
 
-def analyze(i,one):
-    ret = get_spectrum(*one)
-    return ret
 class MS_Dataset(object):
     
     QUERY= """select smiles,file_path from massbank where ms_type="MS" and instrument_type="EI-B"; """
@@ -36,8 +32,6 @@ class MS_Dataset(object):
             connect = connector.connect(host=host,user=user,password=passwd,port=port,database=database)
             cursor = connect.cursor()
             cursor.execute(MS_Dataset.QUERY)
-            succes = 0
-            fault = 0
             data_list = cursor.fetchall()
         except mysql.connector.Error as e:
             print("Something went wrong: {}".format(e))
@@ -93,24 +87,32 @@ class MS_subDataset(Dataset):
         spec_x = [np.pad(one,(0,self.max_spectrum_size-len(one)),"constant",constant_values=-1) for one in self.datasets[idx][0]]
         spec_y = [np.pad(one,(0,self.max_spectrum_size-len(one)),"constant",constant_values=-1) for one in self.datasets[idx][1]]
         return tensorize(self.datasets[idx][2], self.vocab, assm=True)+(torch.tensor(spec_x),)+(torch.tensor(spec_y),)
+    
+def molfromsmiles(smiles, assm=True):
+    mol_tree = MolTree(smiles)
+    mol_tree.recover()
+    if assm:
+        mol_tree.assemble()
+        for node in mol_tree.nodes:
+            if node.label not in node.cands:
+                node.cands.append(node.label)
+
+    del mol_tree.mol
+    for node in mol_tree.nodes:
+        del node.mol
+
+    return mol_tree
 # 
 def get_spectrum(smiles,path):
     x_list=[]
     y_list=[]
     try:
-        mol = MolTree(smiles)
-        mol.recover()
-        mol.assemble()
-        for node in mol.nodes:
-            if node.label not in node.cands:
-                node.cands.append(node.label)
-        del mol.mol
-        for node in mol.nodes:
-            node.mol
+        mol = molfromsmiles(smiles)
             
     except AttributeError as e:
         warnings.warn("Entered An SMILES that does not meet the rules")
         return None
+    
     with open(path,"r") as f:
         lines = f.read().split("\n")
         num = [i for i,one in enumerate(lines) if one.split(": ")[0] == "PK$PEAK"][0] # Perhaps it is faster to use for.

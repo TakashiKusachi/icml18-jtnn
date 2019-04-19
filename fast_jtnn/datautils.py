@@ -123,7 +123,6 @@ def tensorize(tree_batch, vocab, assm=True):
             if node.is_leaf or len(node.cands) == 1: continue
             cands.extend( [(cand, mol_tree.nodes, node) for cand in node.cands] )
             batch_idx.extend([i] * len(node.cands))
-
     jtmpn_holder = JTMPN.tensorize(cands, mess_dict)
     batch_idx = torch.LongTensor(batch_idx)
 
