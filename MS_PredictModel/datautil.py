@@ -5,6 +5,7 @@ from torch.utils.data import Dataset, DataLoader
 import numpy as np
 import os, random
 from tqdm import tqdm
+import pickle
 
 from fast_jtnn.mol_tree import MolTree
 from fast_jtnn.datautils import tensorize,set_batch_nodeID
@@ -22,7 +23,22 @@ class MS_Dataset(object):
     QUERY= """select smiles,file_path from massbank where ms_type="MS" and instrument_type="EI-B"; """
     """
     """
-    def __init__(self,vocab,host,database,batch_size,user=None,passwd=None,port=3306):
+    def __init__(self,vocab,host,database,batch_size,user=None,passwd=None,port=3306,
+                 save="./MS_Dataset.pkl"):
+        if os.path.exists(save):
+            with open(save,"rb") as f:
+                terget_list = pickle.load(f)
+        else:
+            terget_list = self.dataload(host,database,batch_size,user,passwd,port)
+            with open(save,"wb") as f:
+                pickle.dump(terget_list,f)
+        self.max_spectrum_size = max([len(one[0]) for one in terget_list])
+        self.vocab = vocab
+        self.dataset = terget_list
+        self.batch_size = batch_size
+        self.shuffle = True
+        
+    def dataload(self,host,database,batch_size,user=None,passwd=None,port=3306):
         terget_list = []
         try:
             if not isinstance(user,str):
@@ -52,12 +68,7 @@ class MS_Dataset(object):
             else:
                 fault += 1
         print("success {},fault {}".format(succes,fault))
-        self.max_spectrum_size = max_spectrum_size
-        self.vocab = vocab
-        self.dataset = terget_list
-        self.batch_size = batch_size
-        self.shuffle = True
-    
+        return terget_list,max_spectrum_size
     def __len__(self):
         return len(self.dataset)
         
