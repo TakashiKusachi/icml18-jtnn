@@ -17,7 +17,6 @@ from getpass import getpass,getuser
 import warnings
 from multiprocessing import Pool
 
-
 class MS_Dataset(object):
     
     QUERY= """select smiles,file_path from massbank where ms_type="MS" and instrument_type="EI-B"; """
@@ -85,6 +84,48 @@ class MS_Dataset(object):
             yield b
         del batches, dataset, dataloader
 
+def is_select(one):
+    return one["smiles"]!="N/A" and one["ms_type"]=="MS" and one["instrument_type"]=="EI-B" and "ionization_energy" in one and one["ionization_energy"]=="70 eV" and one["ion_mode"]=="POSITIVE"
+        
+class MS_Dataset_pickle(object):
+    def __init__(self,path,vocab,batch_size,select_fn=is_select,save="./MS_Dataset.pkl"):
+        
+        if os.path.exists(save):
+            with open(save,"rb") as f:
+                self.dataset = pickle.load(f)
+        else:
+            with open(path,"rb") as f:
+                fullset = pickle.load(f)
+                dataset = [one for one in fullset if select_fn(one)]
+        
+            self.dataset = []
+            for one in tqdm(dataset):
+                mol = molfromsmiles(one["smiles"])
+                self.dataset.append((one["peak_x"],one["peak_y"],mol))
+                
+            with open(save,"wb") as f:
+                pickle.dump(self.dataset,f)
+        
+        self.max_spectrum_size = max([len(one[0]) for one in self.dataset])
+        self.vocab = vocab
+        self.batch_size = batch_size
+        self.shuffle = True
+    
+    def __len__(self):
+        return len(self.dataset)
+    
+    def __iter__(self):
+        if self.shuffle: 
+            random.shuffle(self.dataset) #shuffle data before batch
+        batches = [zip(*self.dataset[i : i + self.batch_size]) for i in xrange(0, len(self.dataset), self.batch_size)]
+        if len(batches[-1]) < self.batch_size:
+            batches.pop()
+        dataset = MS_subDataset(batches,self.vocab,self.max_spectrum_size)
+        dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=4, collate_fn=lambda x:x[0])
+        for b in dataloader:
+            yield b
+        del batches, dataset, dataloader
+        
 class MS_subDataset(Dataset):
     def __init__(self,datasets,vocab,max_spectrum_size):
         self.datasets = datasets

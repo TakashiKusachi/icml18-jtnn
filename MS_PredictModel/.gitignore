@@ -1,3 +1,4 @@
 processed
 vae_model
 enc_model
+./*.pkl
