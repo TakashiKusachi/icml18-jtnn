@@ -28,11 +28,15 @@ class ms_peak_encoder_lstm(nn.Module):
         super(ms_peak_encoder_lstm, self).__init__()
         self.input_size = input_size
         self.output_size = output_size
-        self.rnn = nn.LSTM(input_size=2,hidden_size=hidden_size,batch_first=True)
+        self.rnn = nn.GRU(input_size=2,hidden_size=hidden_size,batch_first=True)
         self.out = nn.Linear(hidden_size,output_size)
     
     def forward(self,x,y):
+        batch_size = x.size()[0]
         inp = torch.stack((x,y),2)
+        #indc = inp[:,:,1].argsort(1,descending=True)
+        #inp = torch.stack([torch.index_select(inp[batch,:,:],0,indc[batch,:]) for batch in range(batch_size)],0)
+        #print(inp.size)
         inp = Variable(inp).cuda()
         h,_ = self.rnn(inp)
         h = self.out(h[:,-1,:])
