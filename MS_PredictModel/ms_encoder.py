@@ -24,20 +24,24 @@ class ms_peak_encoder(nn.Module):
         return h
 
 class ms_peak_encoder_lstm(nn.Module):
-    def __init__(self,input_size,output_size=56,hidden_size=100):
+    def __init__(self,input_size,output_size=56,hidden_size=100,max_mpz=1000,embedding_size=10):
         super(ms_peak_encoder_lstm, self).__init__()
         self.input_size = input_size
         self.output_size = output_size
-        self.rnn = nn.GRU(input_size=2,hidden_size=hidden_size,batch_first=True)
+        self.hidden_size = hidden_size
+        self.embedding_size = embedding_size
+        self.rnn = nn.GRU(input_size=embedding_size+1,hidden_size=hidden_size,batch_first=True)
         self.out = nn.Linear(hidden_size,output_size)
+        self.embedding = nn.Embedding(max_mpz,embedding_size)
     
     def forward(self,x,y):
         batch_size = x.size()[0]
-        inp = torch.stack((x,y),2)
-        #indc = inp[:,:,1].argsort(1,descending=True)
-        #inp = torch.stack([torch.index_select(inp[batch,:,:],0,indc[batch,:]) for batch in range(batch_size)],0)
-        #print(inp.size)
-        inp = Variable(inp).cuda()
+        number_peak = x.size()[1]
+        x = x.long()
+        inp = self.embedding(x)
+        y = y.float()
+        y = y.view(batch_size,number_peak,1)
+        inp = torch.cat((inp,y),2)
         h,_ = self.rnn(inp)
         h = self.out(h[:,-1,:])
         return h

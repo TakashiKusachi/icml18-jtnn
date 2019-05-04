@@ -86,27 +86,38 @@ class MS_Dataset(object):
 
 def is_select(one):
     return one["smiles"]!="N/A" and one["ms_type"]=="MS" and one["instrument_type"]=="EI-B" and "ionization_energy" in one and one["ionization_energy"]=="70 eV" and one["ion_mode"]=="POSITIVE"
+
+def dataset_load(path,vocab,batch_size,train_validation_rate,select_fn=is_select,save="./MS_Dataset.pkl"):
+    if os.path.exists(save):
+        with open(save,"rb") as f:
+            dataset = pickle.load(f)
+    else:
+        with open(path,"rb") as f:
+            fullset = pickle.load(f)
+            fullset = [one for one in fullset if select_fn(one)]
+        
+        self.dataset = []
+        for one in tqdm(fullset):
+            mol = molfromsmiles(one["smiles"])
+            dataset.append((one["peak_x"],one["peak_y"],mol))
+                
+        with open(save,"wb") as f:
+            pickle.dump(self.dataset,f)
+        
+    max_spectrum_size = max([len(one[0]) for one in dataset])
+    
+    total_size = len(dataset)
+    train_size = int(total_size * train_validation_rate)
+    random.shuffle(dataset)
+    train_dataset = MS_Dataset_pickle(dataset[:train_size],vocab,batch_size,max_spectrum_size)
+    valid_dataset = MS_Dataset_pickle(dataset[train_size:],vocab,batch_size,max_spectrum_size)
+    return (train_dataset,valid_dataset)
         
 class MS_Dataset_pickle(object):
-    def __init__(self,path,vocab,batch_size,select_fn=is_select,save="./MS_Dataset.pkl"):
+    def __init__(self,dataset,vocab,batch_size,max_spectrum_size):
         
-        if os.path.exists(save):
-            with open(save,"rb") as f:
-                self.dataset = pickle.load(f)
-        else:
-            with open(path,"rb") as f:
-                fullset = pickle.load(f)
-                dataset = [one for one in fullset if select_fn(one)]
-        
-            self.dataset = []
-            for one in tqdm(dataset):
-                mol = molfromsmiles(one["smiles"])
-                self.dataset.append((one["peak_x"],one["peak_y"],mol))
-                
-            with open(save,"wb") as f:
-                pickle.dump(self.dataset,f)
-        
-        self.max_spectrum_size = max([len(one[0]) for one in self.dataset])
+        self.dataset = dataset
+        self.max_spectrum_size = max_spectrum_size
         self.vocab = vocab
         self.batch_size = batch_size
         self.shuffle = True
@@ -136,8 +147,8 @@ class MS_subDataset(Dataset):
         return len(self.datasets)
     
     def __getitem__(self,idx):
-        spec_x = [np.pad(one,(0,self.max_spectrum_size-len(one)),"constant",constant_values=-1) for one in self.datasets[idx][0]]
-        spec_y = [np.pad(one,(0,self.max_spectrum_size-len(one)),"constant",constant_values=-1) for one in self.datasets[idx][1]]
+        spec_x = [np.pad(one,(0,self.max_spectrum_size-len(one)),"constant",constant_values=0) for one in self.datasets[idx][0]]
+        spec_y = [np.pad(one,(0,self.max_spectrum_size-len(one)),"constant",constant_values=0) for one in self.datasets[idx][1]]
         return tensorize(self.datasets[idx][2], self.vocab, assm=True)+(torch.tensor(spec_x),)+(torch.tensor(spec_y),)
     
 def molfromsmiles(smiles, assm=True):

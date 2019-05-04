@@ -1,4 +1,6 @@
 processed
 vae_model
 enc_model
+backup
+*.csv
 ./*.pkl
