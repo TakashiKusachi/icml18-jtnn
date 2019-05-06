@@ -3,4 +3,6 @@ vae_model
 enc_model
 backup
 *.csv
+*.zip
+image_list
 ./*.pkl

@@ -45,5 +45,6 @@ class ms_peak_encoder_lstm(nn.Module):
         h,_ = self.rnn(inp)
         h = self.out(h[:,-1,:])
         return h
+    
 if __name__=="__main__":
     print("What?")
