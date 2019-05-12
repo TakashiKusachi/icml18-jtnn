@@ -17,6 +17,7 @@ from getpass import getpass,getuser
 import warnings
 from multiprocessing import Pool
 
+
 class MS_Dataset(object):
     
     QUERY= """select smiles,file_path from massbank where ms_type="MS" and instrument_type="EI-B"; """
@@ -87,6 +88,13 @@ class MS_Dataset(object):
 def is_select(one):
     return one["smiles"]!="N/A" and one["ms_type"]=="MS" and one["instrument_type"]=="EI-B" and "ionization_energy" in one and one["ionization_energy"]=="70 eV" and one["ion_mode"]=="POSITIVE"
 
+
+def sort_intensity(mz,A):
+    index = np.argsort(A)
+    A = np.sort(A)
+    mz = np.take(mz,index)
+    return mz,A
+
 def dataset_load(path,vocab,batch_size,train_validation_rate,select_fn=is_select,save="./MS_Dataset.pkl"):
     if os.path.exists(save):
         with open(save,"rb") as f:
@@ -147,8 +155,9 @@ class MS_subDataset(Dataset):
         return len(self.datasets)
     
     def __getitem__(self,idx):
-        spec_x = [np.pad(one,(0,self.max_spectrum_size-len(one)),"constant",constant_values=0) for one in self.datasets[idx][0]]
-        spec_y = [np.pad(one,(0,self.max_spectrum_size-len(one)),"constant",constant_values=0) for one in self.datasets[idx][1]]
+        mz,A = zip(*[sort_intensity(mz,A) for mz,A,_ in zip(*self.datasets[idx])])
+        spec_x = [np.pad(one,(0,self.max_spectrum_size-len(one)),"constant",constant_values=0) for one in mz]
+        spec_y = [np.pad(one,(0,self.max_spectrum_size-len(one)),"constant",constant_values=-1) for one in A]
         return tensorize(self.datasets[idx][2], self.vocab, assm=True)+(torch.tensor(spec_x),)+(torch.tensor(spec_y),)
     
 def molfromsmiles(smiles, assm=True):

@@ -24,17 +24,23 @@ class ms_peak_encoder(nn.Module):
         return h
 
 class ms_peak_encoder_lstm(nn.Module):
-    def __init__(self,input_size,output_size=56,hidden_size=100,max_mpz=1000,embedding_size=10):
+    def __init__(self,input_size,output_size=56,hidden_size=100,max_mpz=1000,embedding_size=10,num_rnn_layers=1,bidirectional=False):
         super(ms_peak_encoder_lstm, self).__init__()
         self.input_size = input_size
         self.output_size = output_size
         self.hidden_size = hidden_size
         self.embedding_size = embedding_size
-        self.rnn = nn.GRU(input_size=embedding_size+1,hidden_size=hidden_size,batch_first=True)
-        self.out = nn.Linear(hidden_size,output_size)
+        self.bidirectional = bidirectional
+        self.hidden_size = hidden_size
+        
         self.embedding = nn.Embedding(max_mpz,embedding_size)
+        self.rnn = nn.GRU(input_size=embedding_size+1,hidden_size=hidden_size,batch_first=True,num_layers=num_rnn_layers,bidirectional=bidirectional)
+        if self.bidirectional:
+            self.out = nn.Linear(hidden_size*2,output_size)
+        else:
+            self.out = nn.Linear(hidden_size,output_size)
     
-    def forward(self,x,y):
+    def forward(self,x,y,sample=True):
         batch_size = x.size()[0]
         number_peak = x.size()[1]
         x = x.long()
@@ -43,7 +49,11 @@ class ms_peak_encoder_lstm(nn.Module):
         y = y.view(batch_size,number_peak,1)
         inp = torch.cat((inp,y),2)
         h,_ = self.rnn(inp)
-        h = self.out(h[:,-1,:])
+        if self.bidirectional:
+            h = h[:,-1,:]+h[:,0,:]
+        else:
+            h = h[:,-1,:]
+        h = self.out(h)
         return h
     
 if __name__=="__main__":
