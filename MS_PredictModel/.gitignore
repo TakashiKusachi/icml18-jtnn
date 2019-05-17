@@ -2,6 +2,7 @@ processed
 vae_model
 enc_model
 backup
+model
 *.csv
 *.zip
 image_list

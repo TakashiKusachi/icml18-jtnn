@@ -85,7 +85,7 @@ class MS_Dataset(object):
         del batches, dataset, dataloader
 
 def is_select(one):
-    return one["smiles"]!="N/A" and one["ms_type"]=="MS" and one["instrument_type"]=="EI-B" and "ionization_energy" in one and one["ionization_energy"]=="70 eV" and one["ion_mode"]=="POSITIVE"
+    return one["smiles"]!="N/A" and one["ms_type"]=="MS" and one["instrument_type"]=="EI-B" and "ionization_energy" in one and one["ionization_energy"]=="70 eV" and one["ion_mode"]=="POSITIVE" and "2H" not in one["smiles"]
 
 def dataset_load(path,vocab,batch_size,train_validation_rate,select_fn=is_select,save="./MS_Dataset.pkl"):
     if os.path.exists(save):

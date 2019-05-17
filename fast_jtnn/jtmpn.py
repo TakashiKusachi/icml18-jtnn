@@ -5,7 +5,7 @@ from nnutils import create_var, index_select_ND
 from chemutils import get_mol
 import rdkit.Chem as Chem
 
-ELEM_LIST = ['C', 'N', 'O', 'S', 'F', 'Si', 'P', 'Cl', 'Br', 'Mg', 'Na', 'Ca', 'Fe', 'Al', 'I', 'B', 'K', 'Se', 'Zn', 'H', 'Cu', 'Mn', 'unknown']
+ELEM_LIST = ['C', 'N', 'O', 'S', 'F', 'Si', 'P', 'Cl', 'Br', 'Mg', 'Na', 'Ca', 'Fe', 'Al', 'I', 'B', 'K', 'Se', 'Zn', 'H', 'Cu', 'Mn', 'Co', 'Ge', 'Hg', 'Ni', 'Pb', 'Pt', 'Sn', 'unknown']
 
 ATOM_FDIM = len(ELEM_LIST) + 6 + 5 + 1
 BOND_FDIM = 5 

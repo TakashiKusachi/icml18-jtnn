@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from nnutils import *
 from chemutils import get_mol
 
-ELEM_LIST = ['C', 'N', 'O', 'S', 'F', 'Si', 'P', 'Cl', 'Br', 'Mg', 'Na', 'Ca', 'Fe', 'Al', 'I', 'B', 'K', 'Se', 'Zn', 'H', 'Cu', 'Mn', 'unknown']
+ELEM_LIST = ['C', 'N', 'O', 'S', 'F', 'Si', 'P', 'Cl', 'Br', 'Mg', 'Na', 'Ca', 'Fe', 'Al', 'I', 'B', 'K', 'Se', 'Zn', 'H', 'Cu', 'Mn', 'Co', 'Ge', 'Hg', 'Ni', 'Pb', 'Pt', 'Sn', 'unknown']
 
 ATOM_FDIM = len(ELEM_LIST) + 6 + 5 + 4 + 1
 BOND_FDIM = 5 + 6
