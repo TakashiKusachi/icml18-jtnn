@@ -35,6 +35,7 @@ class ms_peak_encoder_lstm(nn.Module):
         self.embedding_size = embedding_size
         self.bidirectional = bidirectional
         self.hidden_size = hidden_size
+        self.dropout_rate = dropout_rate
         
         self.embedding = nn.Embedding(max_mpz,embedding_size)
         self.rnn = nn.GRU(input_size=embedding_size+1,hidden_size=hidden_size,batch_first=True,num_layers=num_rnn_layers,bidirectional=bidirectional)
@@ -64,7 +65,7 @@ class ms_peak_encoder_lstm(nn.Module):
             h = h[:,-1,:]
         h = F.relu(h)
         
-        h = F.dropout(h,training=training)
+        h = F.dropout(h,p=self.dropout_rate,training=training)
         if sample:
             t_vecs,t_kl_loss = self.rsample(h,self.T_mean,self.T_var)
             g_vecs,g_kl_loss = self.rsample(h,self.G_mean,self.G_var)
