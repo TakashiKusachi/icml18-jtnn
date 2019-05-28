@@ -2,6 +2,7 @@
 
 import torch
 from torch.utils.data import Dataset, DataLoader
+from rdkit import Chem
 import numpy as np
 import os, random
 from tqdm import tqdm
@@ -10,8 +11,8 @@ import pickle
 from fast_jtnn.mol_tree import MolTree
 from fast_jtnn.datautils import tensorize,set_batch_nodeID
 
-import mysql
-from mysql import connector
+#import mysql
+#from mysql import connector
 from getpass import getpass,getuser
 
 import warnings
@@ -87,6 +88,9 @@ class MS_Dataset(object):
 def is_select(one):
     return one["smiles"]!="N/A" and one["ms_type"]=="MS" and one["instrument_type"]=="EI-B" and "ionization_energy" in one and one["ionization_energy"]=="70 eV" and one["ion_mode"]=="POSITIVE" and "2H" not in one["smiles"]
 
+def data_catch(one):
+    mol = molfromsmiles(one["smiles"])
+    return (one["peak_x"],one["peak_y"],mol)
 def dataset_load(path,vocab,batch_size,train_validation_rate,select_fn=is_select,save="./MS_Dataset.pkl"):
     if os.path.exists(save):
         with open(save,"rb") as f:
@@ -96,13 +100,17 @@ def dataset_load(path,vocab,batch_size,train_validation_rate,select_fn=is_select
             fullset = pickle.load(f)
             fullset = [one for one in fullset if select_fn(one)]
         
-        self.dataset = []
-        for one in tqdm(fullset):
-            mol = molfromsmiles(one["smiles"])
-            dataset.append((one["peak_x"],one["peak_y"],mol))
+        dataset = []
+        p = Pool()
+        try:
+            dataset = p.map(data_catch,fullset)
+        finally:
+            p.close()
+            p.join()
+            del p
                 
         with open(save,"wb") as f:
-            pickle.dump(self.dataset,f)
+            pickle.dump(dataset,f)
         
     max_spectrum_size = max([len(one[0]) for one in dataset])
     
