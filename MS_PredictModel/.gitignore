@@ -1,9 +1,11 @@
 processed
 vae_model
 enc_model
+dec_model
 backup
 model
 *.csv
 *.zip
 image_list
 ./*.pkl
+result*

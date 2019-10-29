@@ -91,6 +91,7 @@ def is_select(one):
 def data_catch(one):
     mol = molfromsmiles(one["smiles"])
     return (one["peak_x"],one["peak_y"],mol)
+
 def dataset_load(path,vocab,batch_size,train_validation_rate,select_fn=is_select,save="./MS_Dataset.pkl"):
     if os.path.exists(save):
         with open(save,"rb") as f:
